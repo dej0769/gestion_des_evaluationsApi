@@ -2,60 +2,49 @@ package com.example.Gestion_des_evaluations.Auth.Controller;
 
 import com.example.Gestion_des_evaluations.Auth.DTO.LoginRequestDTO;
 import com.example.Gestion_des_evaluations.Auth.DTO.LoginResponseDTO;
-import com.example.Gestion_des_evaluations.Auth.DTO.RegisterRequestDTO;
-import com.example.Gestion_des_evaluations.Auth.DTO.UserResponseDTO;
-import com.example.Gestion_des_evaluations.Auth.Model.Role;
-import com.example.Gestion_des_evaluations.Auth.Model.User;
+import com.example.Gestion_des_evaluations.Auth.DTO.VerifyOtpRequestDTO;
 import com.example.Gestion_des_evaluations.Auth.Service.AuthService;
-import com.example.Gestion_des_evaluations.Auth.Service.UserService;
-import org.springframework.http.HttpStatus;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.io.ByteArrayOutputStream;
 
-// Expose les routes d'authentification
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
-
 
     private final AuthService authService;
 
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
-
-    // Inscription d'un nouvel utilisateur
-    @PostMapping("/register")
-    public ResponseEntity<UserResponseDTO> register(@RequestBody RegisterRequestDTO dto) {
-        User user = authService.register(dto);
-
-        Set<String> roles = user.getRoles()
-                .stream()
-                .map(Role::getName)
-                .collect(Collectors.toSet());
-
-        UserResponseDTO response = new UserResponseDTO(
-                user.getId(),
-                user.getEmail(),
-                user.getNom(),
-                user.getPrenom(),
-                roles
-
-        );
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-
-    // Connexion et génération du JWT
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO dto) {
         return ResponseEntity.ok(authService.login(dto));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<LoginResponseDTO> verifyOtp(@Valid @RequestBody VerifyOtpRequestDTO request) {
+        return ResponseEntity.ok(authService.verifyOtp(request.getEmail(), request.getCode()));
+    }
+
+    @GetMapping(value = "/enable-2fa/qrcode", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> generateQrCode(@RequestParam String email) throws Exception {
+        String otpAuthUrl = authService.enable2FA(email);
+
+        QRCodeWriter qrCodeWriter = new QRCodeWriter();
+        BitMatrix bitMatrix = qrCodeWriter.encode(otpAuthUrl, BarcodeFormat.QR_CODE, 250, 250);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .body(outputStream.toByteArray());
     }
 }

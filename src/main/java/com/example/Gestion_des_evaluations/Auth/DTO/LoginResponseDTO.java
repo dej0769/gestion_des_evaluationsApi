@@ -15,4 +15,5 @@ public class LoginResponseDTO {
     private String nom;
     private String prenom;
     private Set<String> roles;
+    private boolean otpRequired;
 }

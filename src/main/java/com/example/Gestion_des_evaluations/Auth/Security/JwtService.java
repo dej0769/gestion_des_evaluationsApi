@@ -27,7 +27,7 @@ public class JwtService {
 
     // Transforme la clé texte en clé cryptographique utilisable par JJWT
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        return Keys.hmacShaKeyFor(secret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     // Génère un token simple à partir de l'utilisateur connecté

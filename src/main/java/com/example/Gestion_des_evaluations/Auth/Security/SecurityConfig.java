@@ -46,15 +46,17 @@ public class SecurityConfig {
 
                 // Routes publiques et routes protégées
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/test").authenticated()
+                        .requestMatchers("/api/auth/**", "/error").permitAll()
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/2fa/**",
+                                "/error",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
-
-                // Garde une auth basique si besoin, mais le JWT est principal
                 .httpBasic(Customizer.withDefaults())
-
-                // Ajoute le filtre JWT avant le filtre de login standard
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
