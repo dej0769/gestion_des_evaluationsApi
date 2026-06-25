@@ -30,4 +30,6 @@ public interface ReclamationRepository extends JpaRepository<Reclamation, Long> 
     List<Reclamation> findByProgrammationId(@Param("programmationId") Long programmationId);
 
     List<Reclamation> findBySessionReclamationId(Long sessionId);
+
+    long countByStatut(ReclamationStatut statut);
 }

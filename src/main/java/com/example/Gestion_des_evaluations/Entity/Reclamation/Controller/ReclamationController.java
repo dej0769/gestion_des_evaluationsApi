@@ -42,6 +42,15 @@ public class ReclamationController {
         return ResponseEntity.ok(reclamationService.traiter(id));
     }
 
+    @PatchMapping("/reclamations/{id}/rejeter")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    public ResponseEntity<ReclamationResponseDTO> rejeter(
+            @PathVariable Long id,
+            @RequestParam String motif
+    ) {
+        return ResponseEntity.ok(reclamationService.rejeter(id, motif));
+    }
+
     @DeleteMapping("/reclamations/{id}")
     @PreAuthorize("hasRole('RESPONSABLE_PEDAGOGIQUE')")
     public ResponseEntity<Void> supprimer(@PathVariable Long id) {

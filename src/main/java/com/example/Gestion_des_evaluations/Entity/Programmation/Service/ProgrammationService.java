@@ -5,10 +5,12 @@ import com.example.Gestion_des_evaluations.Entity.Evaluation.Model.Evaluation;
 import com.example.Gestion_des_evaluations.Entity.Evaluation.Repository.EvaluationRepository;
 import com.example.Gestion_des_evaluations.Entity.Programmation.DTO.ProgrammationRequestDTO;
 import com.example.Gestion_des_evaluations.Entity.Programmation.DTO.ProgrammationResponseDTO;
+import com.example.Gestion_des_evaluations.Entity.Programmation.Event.ProgrammationCreeeEvent;
 import com.example.Gestion_des_evaluations.Entity.Programmation.Mapper.ProgrammationMapper;
 import com.example.Gestion_des_evaluations.Entity.Programmation.Model.Programmation;
 import com.example.Gestion_des_evaluations.Entity.Programmation.Repository.ProgrammationRepository;
 import com.example.Gestion_des_evaluations.Entity.Sujet.Event.AuditActionEvent;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ public class ProgrammationService {
     private final EvaluationRepository evaluationRepository;
     private final ApplicationEventPublisher eventPublisher;
 
+    @Transactional
     public ProgrammationResponseDTO creer(ProgrammationRequestDTO dto) {
         Evaluation evaluation = evaluationRepository.findById(dto.getEvaluationId())
                 .orElseThrow(() -> new RuntimeException("Evaluation introuvable"));
@@ -37,6 +40,8 @@ public class ProgrammationService {
         programmation.setEvaluation(evaluation);
 
         Programmation saved = programmationRepository.save(programmation);
+
+        eventPublisher.publishEvent(new ProgrammationCreeeEvent(saved.getId()));
 
         eventPublisher.publishEvent(new AuditActionEvent(
                 null,

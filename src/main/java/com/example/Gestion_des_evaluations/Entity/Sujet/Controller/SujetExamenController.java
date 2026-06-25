@@ -1,5 +1,6 @@
 package com.example.Gestion_des_evaluations.Entity.Sujet.Controller;
 
+import com.example.Gestion_des_evaluations.Entity.Sujet.DTO.SujetExamenActionResponseDTO;
 import com.example.Gestion_des_evaluations.Entity.Sujet.DTO.SujetExamenRequestDTO;
 import com.example.Gestion_des_evaluations.Entity.Sujet.DTO.SujetExamenResponseDTO;
 import com.example.Gestion_des_evaluations.Entity.Sujet.Model.StatutSujetExamen;
@@ -57,14 +58,16 @@ public class SujetExamenController {
 
     @PutMapping("/{id}/valider")
     @PreAuthorize("hasRole('RESPONSABLE_PEDAGOGIQUE')")
-    public ResponseEntity<SujetExamen> valider(@PathVariable Long id) {
+    public ResponseEntity<SujetExamenActionResponseDTO> valider(@PathVariable Long id) {
         return ResponseEntity.ok(sujetExamenService.valider(id));
     }
 
     @PutMapping("/{id}/rejeter")
     @PreAuthorize("hasRole('RESPONSABLE_PEDAGOGIQUE')")
-    public ResponseEntity<SujetExamen> rejeter(@PathVariable Long id,
-                                               @RequestParam String motif) {
+    public ResponseEntity<SujetExamenActionResponseDTO> rejeter(
+            @PathVariable Long id,
+            @RequestParam String motif
+    ) {
         return ResponseEntity.ok(sujetExamenService.rejeter(id, motif));
     }
 
@@ -89,10 +92,9 @@ public class SujetExamenController {
 
     @PutMapping("/{id}/archiver")
     @PreAuthorize("hasRole('RESPONSABLE_PEDAGOGIQUE')")
-    public ResponseEntity<SujetExamenResponseDTO> archive(@PathVariable Long id) {
+    public ResponseEntity<SujetExamenActionResponseDTO> archiver(@PathVariable Long id) {
         return ResponseEntity.ok(sujetExamenService.archive(id));
     }
-
     @GetMapping("/enseignant/{enseignantId}")
     public List<SujetExamenResponseDTO> getByEnseignantId(@PathVariable Long enseignantId) {
         return sujetExamenService.getByEnseignantId(enseignantId);

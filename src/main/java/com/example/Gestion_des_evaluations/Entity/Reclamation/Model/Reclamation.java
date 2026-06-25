@@ -1,6 +1,8 @@
 package com.example.Gestion_des_evaluations.Entity.Reclamation.Model;
 
 import com.example.Gestion_des_evaluations.Entity.Note.Model.Note;
+import com.example.Gestion_des_evaluations.Entity.Sujet.Model.SujetExamen;
+import com.example.Gestion_des_evaluations.Entity.User.Model.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,6 +28,12 @@ public class Reclamation {
 
     @Enumerated(EnumType.STRING)
     private ReclamationStatut statut;
+
+    @ManyToOne
+    private SujetExamen sujetExamen;
+
+    @ManyToOne
+    private User etudiant;
 
     @ManyToOne
     private SessionReclamation sessionReclamation;

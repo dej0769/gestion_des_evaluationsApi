@@ -3,11 +3,13 @@ package com.example.Gestion_des_evaluations.Entity.Sujet.Service;
 import com.example.Gestion_des_evaluations.Entity.Action.Model.TypeAction;
 import com.example.Gestion_des_evaluations.Entity.Evaluation.Model.Evaluation;
 import com.example.Gestion_des_evaluations.Entity.Evaluation.Repository.EvaluationRepository;
+import com.example.Gestion_des_evaluations.Entity.Sujet.DTO.SujetExamenActionResponseDTO;
 import com.example.Gestion_des_evaluations.Entity.Sujet.DTO.SujetExamenRequestDTO;
 import com.example.Gestion_des_evaluations.Entity.Sujet.DTO.SujetExamenResponseDTO;
 import com.example.Gestion_des_evaluations.Entity.Sujet.Event.AuditActionEvent;
 import com.example.Gestion_des_evaluations.Entity.Sujet.Event.SujetRejeteEvent;
 import com.example.Gestion_des_evaluations.Entity.Sujet.Event.SujetValideEvent;
+import com.example.Gestion_des_evaluations.Entity.Sujet.Mapper.SujetExamenActionMapper;
 import com.example.Gestion_des_evaluations.Entity.Sujet.Mapper.SujetExamenMapper;
 import com.example.Gestion_des_evaluations.Entity.Sujet.Model.StatutSujetExamen;
 import com.example.Gestion_des_evaluations.Entity.Sujet.Model.SujetExamen;
@@ -113,7 +115,7 @@ public class SujetExamenService {
 
    //valider un sujet
    @Transactional
-   public SujetExamen valider(Long id) {
+   public SujetExamenActionResponseDTO valider(Long id) {
        SujetExamen sujet = sujetExamenRepository.findById(id)
                .orElseThrow(() -> new RuntimeException("Sujet introuvable"));
 
@@ -135,16 +137,15 @@ public class SujetExamenService {
                "Validation du sujet " + saved.getId()
        ));
 
-       return saved;
+       return SujetExamenActionMapper.toActionDTO(saved, "Sujet validé avec succès");
    }
 
 
     //rejeter un sujet
     @Transactional
-    public SujetExamen rejeter(Long id, String motif) {
+    public SujetExamenActionResponseDTO rejeter(Long id, String motif) {
         SujetExamen sujet = sujetExamenRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sujet introuvable"));
-
 
         if (sujet.getStatut() != StatutSujetExamen.BROUILLON) {
             throw new RuntimeException("Le sujet a déjà été traité.");
@@ -165,7 +166,7 @@ public class SujetExamenService {
                 "Rejet du sujet " + saved.getId() + " : " + motif
         ));
 
-        return saved;
+        return SujetExamenActionMapper.toActionDTO(saved, "Sujet rejeté avec succès");
     }
 
 
@@ -196,21 +197,24 @@ public class SujetExamenService {
         sujetExamenRepository.delete(sujet);
     }
 //archiver un sujet
-    public SujetExamenResponseDTO archive(Long id) {
-        SujetExamen sujet = sujetExamenRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Sujet introuvable avec l'id : " + id));
+@Transactional
+public SujetExamenActionResponseDTO archive(Long id) {
+    SujetExamen sujet = sujetExamenRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Sujet introuvable"));
 
-        if (sujet.getStatut() == StatutSujetExamen.ARCHIVE) {
-            throw new RuntimeException("Le sujet est déjà archivé.");
-        }
-
-        if (sujet.getStatut() != StatutSujetExamen.VALIDE) {
-            throw new RuntimeException("Seul un sujet validé peut être archivé.");
-        }
-
-        sujet.setStatut(StatutSujetExamen.ARCHIVE);
-        return SujetExamenMapper.toDTO(sujetExamenRepository.save(sujet));
+    if (sujet.getStatut() == StatutSujetExamen.ARCHIVE) {
+        throw new RuntimeException("Le sujet est déjà archivé.");
     }
+
+    if (sujet.getStatut() != StatutSujetExamen.VALIDE) {
+        throw new RuntimeException("Seul un sujet validé peut être archivé.");
+    }
+
+    sujet.setStatut(StatutSujetExamen.ARCHIVE);
+    SujetExamen saved = sujetExamenRepository.save(sujet);
+
+    return SujetExamenActionMapper.toActionDTO(saved, "Sujet archivé avec succès");
+}
 //recherche par id enseignant
     public List<SujetExamenResponseDTO> getByEnseignantId(Long enseignantId) {
         return sujetExamenRepository.findByEnseignantId(enseignantId)

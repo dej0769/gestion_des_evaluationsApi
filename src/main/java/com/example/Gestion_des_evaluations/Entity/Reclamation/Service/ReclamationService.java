@@ -5,6 +5,8 @@ import com.example.Gestion_des_evaluations.Entity.Note.Model.Note;
 import com.example.Gestion_des_evaluations.Entity.Note.Repository.NoteRepository;
 import com.example.Gestion_des_evaluations.Entity.Reclamation.DTO.ReclamationRequestDTO;
 import com.example.Gestion_des_evaluations.Entity.Reclamation.DTO.ReclamationResponseDTO;
+import com.example.Gestion_des_evaluations.Entity.Reclamation.Event.ReclamationCreeeEvent;
+import com.example.Gestion_des_evaluations.Entity.Reclamation.Event.ReclamationTraiteeEvent;
 import com.example.Gestion_des_evaluations.Entity.Reclamation.Mapper.ReclamationMapper;
 import com.example.Gestion_des_evaluations.Entity.Reclamation.Model.Reclamation;
 import com.example.Gestion_des_evaluations.Entity.Reclamation.Model.ReclamationStatut;
@@ -16,6 +18,7 @@ import com.example.Gestion_des_evaluations.Entity.Sujet.Event.AuditActionEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,7 +31,7 @@ public class ReclamationService {
     private final NoteRepository noteRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final SessionReclamationRepository sessionReclamationRepository;
-
+    @Transactional
     public ReclamationResponseDTO deposer(ReclamationRequestDTO dto) {
         SessionReclamation session = sessionReclamationRepository.findById(dto.getSessionId())
                 .orElseThrow(() -> new RuntimeException("Session introuvable"));
@@ -52,6 +55,8 @@ public class ReclamationService {
 
         Reclamation saved = reclamationRepository.save(r);
 
+        eventPublisher.publishEvent(new ReclamationCreeeEvent(saved.getId()));
+
         eventPublisher.publishEvent(new AuditActionEvent(
                 note.getCorrecteur().getId(),
                 TypeAction.DEPOT_RECLAMATION,
@@ -60,11 +65,18 @@ public class ReclamationService {
 
         return ReclamationMapper.toDTO(saved);
     }
-
+    @Transactional
     public ReclamationResponseDTO traiter(Long id) {
         Reclamation r = getByIdEntity(id);
+        if (r.getStatut() != ReclamationStatut.DEPOSEE) {
+            throw new RuntimeException("Cette réclamation a déjà été traitée ");
+        }
+
         r.setStatut(ReclamationStatut.TRAITEE);
         Reclamation saved = reclamationRepository.save(r);
+
+        eventPublisher.publishEvent(new ReclamationTraiteeEvent(saved.getId(), "TRAITEE"));
+
 
         eventPublisher.publishEvent(new AuditActionEvent(
                 saved.getNote().getCorrecteur().getId(),
@@ -75,7 +87,24 @@ public class ReclamationService {
         return ReclamationMapper.toDTO(saved);
     }
 
+    @Transactional
+    public ReclamationResponseDTO rejeter(Long id, String motif) {
+        Reclamation r = getByIdEntity(id);
+
+        if (r.getStatut() != ReclamationStatut.DEPOSEE) {
+            throw new RuntimeException("Cette réclamation a déjà été rejetée");
+        }
+
+        r.setStatut(ReclamationStatut.REJETEE);
+        Reclamation saved = reclamationRepository.save(r);
+
+        eventPublisher.publishEvent(new ReclamationTraiteeEvent(saved.getId(), "REJETEE"));
+
+        return ReclamationMapper.toDTO(saved);
+    }
+
     public ReclamationResponseDTO suivre(Long id) {
+
         return ReclamationMapper.toDTO(getByIdEntity(id));
     }
 

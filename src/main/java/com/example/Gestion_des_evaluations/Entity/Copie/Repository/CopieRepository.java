@@ -18,4 +18,6 @@ public interface CopieRepository extends JpaRepository<Copie, Long> {
 
     List<Copie> findBySujetExamenIdAndStatut(Long sujetExamenId, StatutCopie statut);
 
+    long countByStatut(StatutCopie statut);
+
 }
