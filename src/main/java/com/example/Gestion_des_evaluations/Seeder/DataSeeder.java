@@ -260,7 +260,7 @@ public class DataSeeder implements ApplicationRunner {
         note.setNbreTotalEtudiantsComposes(1);
         note.setNbreEtudiantsAyantLaMoyenne(1.0);
         note.setCopie(copie);
-        note.setCorrecteur(correcteur);
+        note.getCopie().setCorrecteur(correcteur);
 
         noteRepository.save(note);
     }

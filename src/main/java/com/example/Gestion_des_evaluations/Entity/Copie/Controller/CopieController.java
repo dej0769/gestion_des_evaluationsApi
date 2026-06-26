@@ -85,20 +85,10 @@ public class CopieController {
         return ResponseEntity.ok(copieService.deposerCopieCorrigee(id, file));
     }
 
-    @PutMapping("/{id}/en-correction")
-    @PreAuthorize("hasRole('ENSEIGNANT')")
-    public ResponseEntity<CopieResponseDTO> enCorrection(@PathVariable Long id) {
-        return ResponseEntity.ok(copieService.mettreEnCorrection(id));
-    }
 
     @GetMapping("/sujet/{sujetExamenId}")
     public List<CopieResponseDTO> getBySujetExamenId(@PathVariable Long sujetExamenId) {
         return copieService.getBySujetExamenId(sujetExamenId);
-    }
-
-    @GetMapping("/etudiant/{etudiantId}")
-    public List<CopieResponseDTO> getByEtudiantId(@PathVariable Long etudiantId) {
-        return copieService.getByEtudiantId(etudiantId);
     }
 
     @GetMapping("/statut/{statut}")
@@ -118,5 +108,14 @@ public class CopieController {
             @PathVariable Long sujetExamenId,
             @PathVariable StatutCopie statut) {
         return copieService.getBySujetAndStatut(sujetExamenId, statut);
+    }
+
+    @PutMapping("/{copieId}/correcteur/{userId}")
+    public ResponseEntity<String> affecterCorrecteur(
+            @PathVariable Long copieId,
+            @PathVariable Long userId) {
+
+        copieService.affecterCorrecteur(copieId, userId);
+        return ResponseEntity.ok("Correcteur affecté avec succès");
     }
 }

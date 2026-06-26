@@ -42,7 +42,7 @@ public class NoteService {
         note.setNbreEtudiantsAyantLaMoyenne(dto.getNbreEtudiantsAyantLaMoyenne());
         note.setNbreTotalEtudiantsComposes(dto.getNbreTotalEtudiantsComposes());
         note.setCopie(copie);
-        note.setCorrecteur(correcteur);
+
 
         copie.setStatut(StatutCopie.CORRIGEE);
         copieRepository.save(copie);
@@ -85,7 +85,6 @@ public class NoteService {
         note.setCommentaire(dto.getCommentaire());
         note.setDateCorrection(LocalDateTime.now());
         note.setCopie(copie);
-        note.setCorrecteur(correcteur);
 
         Note saved = noteRepository.save(note);
 
@@ -118,18 +117,5 @@ public class NoteService {
                 .toList();
     }
 
-    public List<NoteResponseDTO> getByCorrecteurId(Long correcteurId) {
-        return noteRepository.findByCorrecteurId(correcteurId)
-                .stream()
-                .map(NoteMapper::toDTO)
-                .toList();
-    }
 
-
-    public List<NoteResponseDTO> getByEtudiantId(Long etudiantId) {
-        return noteRepository.findByCopieEtudiantId(etudiantId)
-                .stream()
-                .map(NoteMapper::toDTO)
-                .toList();
-    }
 }

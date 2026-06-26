@@ -2,23 +2,28 @@ package com.example.Gestion_des_evaluations.Entity.Auth.Service;
 
 import com.example.Gestion_des_evaluations.Entity.Action.Model.TypeAction;
 import com.example.Gestion_des_evaluations.Entity.Action.Service.ActionService;
-import com.example.Gestion_des_evaluations.Entity.Auth.DTO.LoginRequestDTO;
-import com.example.Gestion_des_evaluations.Entity.Auth.DTO.LoginResponseDTO;
-import com.example.Gestion_des_evaluations.Entity.Auth.DTO.OtpVerifyRequestDTO;
+import com.example.Gestion_des_evaluations.Entity.Auth.DTO.*;
+import com.example.Gestion_des_evaluations.Entity.Auth.Model.LoginOtp;
+import com.example.Gestion_des_evaluations.Entity.Auth.Repository.LoginOtpRepository;
 import com.example.Gestion_des_evaluations.Entity.Sujet.Event.AuditActionEvent;
+import com.example.Gestion_des_evaluations.Entity.User.Model.PasswordResetToken;
 import com.example.Gestion_des_evaluations.Entity.User.Model.User;
+import com.example.Gestion_des_evaluations.Entity.User.Repository.PasswordResetTokenRepository;
 import com.example.Gestion_des_evaluations.Entity.User.Repository.UserRepository;
 import com.example.Gestion_des_evaluations.Entity.Auth.Security.CustomUserDetailsService;
 import com.example.Gestion_des_evaluations.Entity.Auth.Security.JwtService;
+import com.example.Gestion_des_evaluations.Service.Mail.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 // Contient la logique métier de connexion
@@ -29,83 +34,104 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final OtpSenderService otpSenderService;
     private final CustomUserDetailsService customUserDetailsService;
     private final ActionService actionService;
+    private final PasswordResetTokenRepository tokenRepository;
+    private final EmailService emailService;
+    private final LoginOtpRepository otpRepository;
 
-    private final Map<String, OtpData> otpStore = new ConcurrentHashMap<>();
+    @Value("${app.frontend.reset-password-url:http://localhost:3000/reset-password}")
+    private String resetPasswordUrl;
 
-    @Value("${otp.expiration-minutes}")
-    private long otpExpirationMinutes;
-
-    public LoginResponseDTO login(LoginRequestDTO dto) {
-        User user = userRepository.findByEmail(dto.getEmail())
+    @Transactional
+    public LoginResponseDTO login(LoginRequestDTO request) {
+        User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
-        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Mot de passe incorrect");
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Mot de passe invalide");
         }
 
-        String otp = generateOtp();
-        otpStore.put(user.getEmail(), new OtpData(otp, LocalDateTime.now().plusMinutes(otpExpirationMinutes)));
+        otpRepository.deleteByEmailAndUsedFalse(user.getEmail());
 
-        otpSenderService.sendOtp(user.getTelephone(), "Votre code OTP est : " + otp);
+        String otp = String.valueOf((int) (Math.random() * 900000) + 100000);
+
+        LoginOtp loginOtp = new LoginOtp();
+        loginOtp.setEmail(user.getEmail());
+        loginOtp.setCode(otp);
+        loginOtp.setExpiryDate(LocalDateTime.now().plusMinutes(5));
+        loginOtp.setUsed(false);
+
+        otpRepository.save(loginOtp);
+        emailService.sendOtpEmail(user.getEmail(), otp);
 
         return LoginResponseDTO.builder()
-                .token(null)
                 .otpRequired(true)
-                .message("Code OTP envoyé par SMS")
+                .message("OTP envoyé par email")
                 .build();
     }
 
-    public LoginResponseDTO verifyOtp(OtpVerifyRequestDTO dto) {
-        OtpData otpData = otpStore.get(dto.getEmail());
+    @Transactional
+    public LoginResponseDTO verifyOtp(OtpVerifyRequestDTO request) {
+        LoginOtp otp = otpRepository.findTopByEmailAndUsedFalseOrderByIdDesc(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("OTP introuvable"));
 
-        if (otpData == null) {
-            throw new RuntimeException("Aucun OTP trouvé");
-        }
-
-        if (otpData.expiry.isBefore(LocalDateTime.now())) {
-            otpStore.remove(dto.getEmail());
+        if (otp.getExpiryDate().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("OTP expiré");
         }
 
-        if (!otpData.code.equals(dto.getOtp())) {
+        if (!otp.getCode().equals(request.getOtp())) {
             throw new RuntimeException("OTP invalide");
         }
 
-        User user = userRepository.findByEmail(dto.getEmail())
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+        otp.setUsed(true);
+        otpRepository.save(otp);
 
-        otpStore.remove(dto.getEmail());
-
-        UserDetails userDetails = customUserDetailsService.loadUserByUsername(user.getEmail());
-        String token = jwtService.generateToken(userDetails);
-
-        actionService.enregistrerAutomatiquement(new AuditActionEvent(
-                user.getId(),
-                TypeAction.CONNEXION,
-                "Connexion réussie avec OTP de " + user.getEmail()
-        ));
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(request.getEmail());
+        String jwt = jwtService.generateToken(userDetails);
 
         return LoginResponseDTO.builder()
-                .token(token)
+                .token(jwt)
                 .otpRequired(false)
                 .message("Connexion réussie")
                 .build();
     }
 
-    private String generateOtp() {
-        return String.format("%06d", new Random().nextInt(999999));
+    @Transactional
+    public String forgotPassword(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        tokenRepository.deleteByUser(user);
+
+        String token = UUID.randomUUID().toString();
+
+        PasswordResetToken resetToken = new PasswordResetToken();
+        resetToken.setToken(token);
+        resetToken.setUser(user);
+        resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(30));
+        tokenRepository.save(resetToken);
+
+        String link = resetPasswordUrl + "?token=" + token;
+        emailService.sendResetPasswordEmail(user.getEmail(), link);
+
+        return "Lien de réinitialisation envoyé";
     }
 
-    private static class OtpData {
-        private final String code;
-        private final LocalDateTime expiry;
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        PasswordResetToken resetToken = tokenRepository.findByToken(request.getToken())
+                .orElseThrow(() -> new RuntimeException("Token invalide"));
 
-        private OtpData(String code, LocalDateTime expiry) {
-            this.code = code;
-            this.expiry = expiry;
+        if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Token expiré");
         }
+
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        tokenRepository.delete(resetToken);
     }
+
 }

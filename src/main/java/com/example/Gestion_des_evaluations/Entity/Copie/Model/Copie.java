@@ -1,5 +1,6 @@
 package com.example.Gestion_des_evaluations.Entity.Copie.Model;
 
+import com.example.Gestion_des_evaluations.Entity.Evaluation.Model.Evaluation;
 import com.example.Gestion_des_evaluations.Entity.Sujet.Model.SujetExamen;
 import com.example.Gestion_des_evaluations.Entity.User.Model.User;
 import jakarta.persistence.*;
@@ -41,7 +42,15 @@ public class Copie {
     @JoinColumn(name = "sujet_examen_id", nullable = false)
     private SujetExamen sujetExamen;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "etudiant_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "etudiant_id")
     private User etudiant;
+
+    @ManyToOne
+    @JoinColumn(name = "correcteur_id")
+    private User correcteur;
+
+    @ManyToOne
+    @JoinColumn(name = "evaluation_id")
+    private Evaluation evaluation;
 }

@@ -183,32 +183,8 @@ public class CopieService {
         return CopieMapper.toDTO(saved);
     }
 
-    public CopieResponseDTO mettreEnCorrection(Long id) {
-        Copie copie = copieRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Copie introuvable"));
-
-        copie.setStatut(StatutCopie.EN_CORRECTION);
-        Copie saved = copieRepository.save(copie);
-
-        eventPublisher.publishEvent(new AuditActionEvent(
-                null,
-                TypeAction.MISE_EN_CORRECTION,
-                "Mise en correction de la copie " + saved.getId()
-        ));
-
-        return CopieMapper.toDTO(saved);
-    }
-
-
     public List<CopieResponseDTO> getBySujetExamenId(Long sujetExamenId) {
         return copieRepository.findBySujetExamenId(sujetExamenId)
-                .stream()
-                .map(CopieMapper::toDTO)
-                .toList();
-    }
-
-    public List<CopieResponseDTO> getByEtudiantId(Long etudiantId) {
-        return copieRepository.findByEtudiantId(etudiantId)
                 .stream()
                 .map(CopieMapper::toDTO)
                 .toList();
@@ -233,5 +209,20 @@ public class CopieService {
                 .stream()
                 .map(CopieMapper::toDTO)
                 .toList();
+    }
+
+    public void affecterCorrecteur(Long copieId, Long userId) {
+        Copie copie = copieRepository.findById(copieId)
+                .orElseThrow(() -> new RuntimeException("Copie introuvable"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User introuvable"));
+
+        if (user.getRoles().stream().noneMatch(r -> r.getName().equals("CORRECTEUR"))) {
+            throw new RuntimeException("Ce user n'est pas correcteur");
+        }
+
+        copie.setCorrecteur(user);
+        copieRepository.save(copie);
     }
 }

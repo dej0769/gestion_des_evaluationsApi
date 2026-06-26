@@ -37,7 +37,4 @@ public class Note {
     @JoinColumn(name = "copie_id", nullable = false, unique = true)
     private Copie copie;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "correcteur_id", nullable = false)
-    private User correcteur;
 }

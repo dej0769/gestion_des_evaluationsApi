@@ -8,11 +8,15 @@ import com.example.Gestion_des_evaluations.Entity.Evaluation.Model.Evaluation;
 import com.example.Gestion_des_evaluations.Entity.Evaluation.Model.StatutEvaluation;
 import com.example.Gestion_des_evaluations.Entity.Evaluation.Repository.EvaluationRepository;
 import com.example.Gestion_des_evaluations.Entity.Sujet.Event.AuditActionEvent;
+import com.example.Gestion_des_evaluations.Entity.User.Model.User;
+import com.example.Gestion_des_evaluations.Entity.User.Repository.UserRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,10 +24,12 @@ public class EvaluationService {
 
     private final EvaluationRepository evaluationRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final UserRepository userRepository;
 
-    public EvaluationService(EvaluationRepository evaluationRepository, ApplicationEventPublisher eventPublisher) {
+    public EvaluationService(EvaluationRepository evaluationRepository, ApplicationEventPublisher eventPublisher, UserRepository userRepository) {
         this.evaluationRepository = evaluationRepository;
         this.eventPublisher = eventPublisher;
+        this.userRepository = userRepository;
     }
 
     // Crée une nouvelle évaluation après vérification des conflits de salle et d'horaire
@@ -158,5 +164,26 @@ public class EvaluationService {
                 .stream()
                 .map(EvaluationMapper::toDTO)
                 .toList();
+    }
+
+    public void affecterSurveillants(Long evaluationId, Set<Long> userIds) {
+        Evaluation evaluation = evaluationRepository.findById(evaluationId)
+                .orElseThrow(() -> new RuntimeException("Evaluation introuvable"));
+
+        Set<User> surveillants = new HashSet<>();
+
+        for (Long userId : userIds) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User introuvable"));
+
+            if (user.getRoles().stream().noneMatch(r -> r.getName().equals("SURVEILLANT"))) {
+                throw new RuntimeException("Ce user n'est pas surveillant");
+            }
+
+            surveillants.add(user);
+        }
+
+        evaluation.setSurveillants(surveillants);
+        evaluationRepository.save(evaluation);
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("${app.base-url}/evaluations")
@@ -89,5 +90,15 @@ public class EvaluationController {
     public List<EvaluationResponseDTO> getByDateEvaluation(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateEvaluation) {
         return evaluationService.getByDateEvaluation(dateEvaluation);
+    }
+
+    @PutMapping("/{evaluationId}/surveillants")
+    @PreAuthorize("hasRole('AGENT_SCOLARITE')")
+    public ResponseEntity<String> affecterSurveillants(
+            @PathVariable Long evaluationId,
+            @RequestBody Set<Long> userIds) {
+
+        evaluationService.affecterSurveillants(evaluationId, userIds);
+        return ResponseEntity.ok("Surveillants affectés avec succès");
     }
 }

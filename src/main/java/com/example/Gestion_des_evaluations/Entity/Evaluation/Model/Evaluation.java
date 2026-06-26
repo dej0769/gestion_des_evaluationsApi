@@ -8,7 +8,8 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-
+import java.util.HashSet;
+import java.util.Set;
 
 
 @Setter
@@ -72,6 +73,14 @@ public class Evaluation {
     private User enseignant;
     public Evaluation() {
     }
+
+    @ManyToMany
+    @JoinTable(
+            name = "evaluation_surveillant",
+            joinColumns = @JoinColumn(name = "evaluation_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> surveillants = new HashSet<>();
 
 
 }

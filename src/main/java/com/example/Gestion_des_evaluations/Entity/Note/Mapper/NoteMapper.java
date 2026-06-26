@@ -14,7 +14,11 @@ public class NoteMapper {
         dto.setNbreTotalEtudiantsComposes(note.getNbreTotalEtudiantsComposes());
         dto.setNbreEtudiantsAyantLaMoyenne(note.getNbreEtudiantsAyantLaMoyenne());
         dto.setCopieId(note.getCopie() != null ? note.getCopie().getId() : null);
-        dto.setCorrecteurId(note.getCorrecteur() != null ? note.getCorrecteur().getId() : null);
+        dto.setCorrecteurId(
+                note.getCopie() != null && note.getCopie().getCorrecteur() != null
+                        ? note.getCopie().getCorrecteur().getId()
+                        : null
+        );
         return dto;
     }
 }

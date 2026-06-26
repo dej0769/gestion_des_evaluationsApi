@@ -58,7 +58,7 @@ public class ReclamationService {
         eventPublisher.publishEvent(new ReclamationCreeeEvent(saved.getId()));
 
         eventPublisher.publishEvent(new AuditActionEvent(
-                note.getCorrecteur().getId(),
+                note.getCopie().getCorrecteur().getId(),
                 TypeAction.DEPOT_RECLAMATION,
                 "Dépôt de la réclamation " + saved.getId()
         ));
@@ -79,7 +79,7 @@ public class ReclamationService {
 
 
         eventPublisher.publishEvent(new AuditActionEvent(
-                saved.getNote().getCorrecteur().getId(),
+                saved.getNote().getCopie().getCorrecteur().getId(),
                 TypeAction.TRAITEMENT_RECLAMATION,
                 "Traitement de la réclamation " + saved.getId()
         ));

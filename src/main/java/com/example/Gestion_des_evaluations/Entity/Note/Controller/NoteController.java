@@ -52,14 +52,5 @@ public class NoteController {
         return noteService.getByCopieId(copieId);
     }
 
-    @GetMapping("/correcteur/{correcteurId}")
-    public List<NoteResponseDTO> getByCorrecteurId(@PathVariable Long correcteurId) {
-        return noteService.getByCorrecteurId(correcteurId);
-    }
 
-
-    @GetMapping("/etudiant/{etudiantId}")
-    public List<NoteResponseDTO> getByEtudiantId(@PathVariable Long etudiantId) {
-        return noteService.getByEtudiantId(etudiantId);
-    }
 }
