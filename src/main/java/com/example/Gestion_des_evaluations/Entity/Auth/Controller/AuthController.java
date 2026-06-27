@@ -17,6 +17,7 @@ import java.io.ByteArrayOutputStream;
 @RestController
 @RequestMapping("${app.base-url}/auth")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
     private final AuthService authService;

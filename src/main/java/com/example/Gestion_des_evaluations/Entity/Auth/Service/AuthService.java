@@ -6,7 +6,9 @@ import com.example.Gestion_des_evaluations.Entity.Auth.DTO.*;
 import com.example.Gestion_des_evaluations.Entity.Auth.Model.LoginOtp;
 import com.example.Gestion_des_evaluations.Entity.Auth.Repository.LoginOtpRepository;
 import com.example.Gestion_des_evaluations.Entity.Sujet.Event.AuditActionEvent;
+import com.example.Gestion_des_evaluations.Entity.User.DTO.UserResponseDTO;
 import com.example.Gestion_des_evaluations.Entity.User.Model.PasswordResetToken;
+import com.example.Gestion_des_evaluations.Entity.User.Model.Role;
 import com.example.Gestion_des_evaluations.Entity.User.Model.User;
 import com.example.Gestion_des_evaluations.Entity.User.Repository.PasswordResetTokenRepository;
 import com.example.Gestion_des_evaluations.Entity.User.Repository.UserRepository;
@@ -23,8 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 // Contient la logique métier de connexion
 @Service
@@ -90,10 +94,26 @@ public class AuthService {
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(request.getEmail());
         String jwt = jwtService.generateToken(userDetails);
 
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        Set<String> roles = user.getRoles().stream()
+                .map(Role::getName)
+                .collect(Collectors.toSet());
+
+        UserResponseDTO userDTO = new UserResponseDTO(
+                user.getId(),
+                user.getEmail(),
+                user.getNom(),
+                user.getPrenom(),
+                roles
+        );
+
         return LoginResponseDTO.builder()
                 .token(jwt)
                 .otpRequired(false)
                 .message("Connexion réussie")
+                .user(userDTO)
                 .build();
     }
 
